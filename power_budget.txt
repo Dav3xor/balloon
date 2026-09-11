@@ -1,0 +1,12 @@
+
+thin film pv panel
+3.6v, 50mA (each)
+
+
+device                   power             weight
+------------------------------------------------------------
+mcu (typical)         :  ~44mA
+camera + mcu (active) :  ~360mA            ~6.6g 
+lora radio (transmit) :  ~125mA             5.0g (seems high)
+lora radio (receive)  :  ~7.6mA            
+gps  radio            :  ~20mA             ~0.6G
