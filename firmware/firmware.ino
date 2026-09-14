@@ -1,4 +1,6 @@
 #include "esp_camera.h"
+#include "FS.h"
+#include <LittleFS.h>
 
 //WROVER-KIT PIN Map
 #define CAM_PIN_PWDN    32 //power down is not used
@@ -19,6 +21,12 @@
 #define CAM_PIN_HREF    23
 #define CAM_PIN_PCLK    22
 
+
+// define what width/height we're using
+#define CAM_WIDTH       1600
+#define CAM_HEIGHT      1200
+#define CAM_FRAMESIZE   FRAMESIZE_UXGA
+#define CAM_OUTBUFSIZE  (CAM_WIDTH*CAM_HEIGHT)/4
 static camera_config_t camera_config = {
     .pin_pwdn  = CAM_PIN_PWDN,
     .pin_reset = CAM_PIN_RESET,
@@ -43,7 +51,7 @@ static camera_config_t camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_GRAYSCALE,//YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_UXGA,//QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+    .frame_size = CAM_FRAMESIZE,//QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
 
     .jpeg_quality = 12, //0-63, for OV series camera sensors, lower number means higher quality
     .fb_count = 1, //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
@@ -51,17 +59,74 @@ static camera_config_t camera_config = {
     .grab_mode = CAMERA_GRAB_WHEN_EMPTY//CAMERA_GRAB_LATEST. Sets when buffers should be filled
 };
 
+
+
+
+
+
+
+uint8_t *outbuf = NULL;
 const char *grays = " .~*&%@#";
+const char *grays2 = " ~+#";
+uint32_t counter = 0;
 void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf, size_t len) {
-    Serial.println("capture");
-    uint32_t zoom = 20;
-    for(int i=0; i < height/zoom; i++) {
-        for(int j=0; j < width/zoom*2; j++){
-            Serial.print(grays[buf[i*(width*zoom) + j*zoom/2]>>5]);
+    if (counter == 10){
+        uint8_t  cur_byte = 0;
+        for(uint32_t i = 0; i < width*height; i++) {
+            uint32_t cur_out_data   = buf[i] >> 6;
+            uint32_t cur_byte_pos   = i % 4;
+            uint8_t val             = buf[i] >> 6;
+            cur_byte                = (cur_byte << 2) + val;
+            if (cur_byte_pos == 3) {
+                outbuf[i>>2] = cur_byte;
+                //cur_byte = 0;
+            }
+            
         }
-        Serial.println("");
+
+        Serial.println("capture");
+        uint32_t zoom = 20;
+
+
+
+
+        // print the original buffer from the camera
+        //for(int i=0; i < height/zoom; i++) {
+        //    for(int j=0; j < width/zoom*2; j++){
+        //        Serial.print(grays[buf[i*(width*zoom) + j*zoom/2]>>5]);
+        //    }
+        //    Serial.println("");
+        //}
+
+        // print the 2 bits per pixel result.
+        for(int i=0; i < height/zoom; i++) {
+            for(int j=0; j < width/zoom*2; j++){
+                Serial.print(grays2[(outbuf[i*((width>>2)*zoom) + ((j*zoom)>>2)/2] >> 6)&3]);
+            }
+            Serial.println("");
+        }
+        writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
     }
+    counter += 1;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 esp_err_t camera_init(){
     //power up the camera if PWDN pin is defined
@@ -100,11 +165,44 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  Serial.println();
+  Serial.println("allocating buffer");
+  outbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
+  if (outbuf==NULL) {
+    Serial.println("buffer allocation failed");
+  }
+  Serial.println("camera init");
   Serial.println(camera_init());
+  Serial.println("camera init done");
+  
+  if(!LittleFS.begin(true)){
+  Serial.println("LittleFS Mount Failed");
+  return;
+}
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   camera_capture();
 }
+
+
+
+
+
+void writeFile(fs::FS &fs, const char *path, uint8_t *data, size_t len){
+  Serial.printf("Writing file: %s\r\n", path);
+
+  File file = fs.open(path, FILE_WRITE);
+  if(!file){
+    Serial.println("- failed to open file for writing");
+    return;
+  }
+  if(file.write(data,len)){
+    Serial.println("- file written");
+  } else {
+    Serial.println("- write failed");
+  }
+  file.close();
+}
+
+
