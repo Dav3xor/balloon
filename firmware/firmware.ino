@@ -59,29 +59,78 @@ static camera_config_t camera_config = {
     .grab_mode = CAMERA_GRAB_WHEN_EMPTY//CAMERA_GRAB_LATEST. Sets when buffers should be filled
 };
 
-
-
-
-
-
-
 uint8_t *outbuf = NULL;
+int8_t *fs_buf = NULL;
 const char *grays = " .~*&%@#";
-const char *grays2 = " ~+#";
+//const char *grays2 = " ~+#";
+const char *grays2 = "#+~ ";
+const uint8_t midpoints[4] = { 32, 96, 160, 124 };
 uint32_t counter = 0;
+
+int8_t clamp(int16_t val, int16_t error){
+  if (val+error > 127) {
+    return 127;
+  } else if (val+error < -128) {
+    return -128;
+  } else {
+    return val+error;
+  }
+}
+
+uint8_t clamp2(int16_t a, int16_t b){
+  if(a+b > 255) {
+    return 255;
+  } else if (a+b < 0) {
+    return 0;
+  } else {
+    return a+b;
+  }
+}
+
+// do a line of floyd-steinberg
+void floyd_steinberg(size_t width, uint8_t *inbuf, uint8_t *outbuf){
+  // move the floyd steinberg buffer forward a line
+  memcpy((void *)fs_buf, 
+         (void *)&fs_buf[width], 
+         width);
+  memset((void *)&fs_buf[width], 0, width);
+  
+  uint8_t cur_byte = 0;
+
+  for (int i = 1; i < width-1; i++){
+    // first, determine the current pixel's error from the ideal
+    int16_t error           = inbuf[i]-midpoints[inbuf[i]>>6];
+
+    // then add it into the floyd-steinberg buffer...
+    fs_buf[i+1]       = clamp(fs_buf[i+1],       (error*7) / 4);
+    fs_buf[i+width-1] = clamp(fs_buf[i+width-1], (error*3) / 4);
+    fs_buf[i+width]   = clamp(fs_buf[i+width],   (error*5) / 4);
+    fs_buf[i+width+1] = clamp(fs_buf[i+width+1], error / 4);
+
+
+    int32_t cur_out_data    = inbuf[i] >> 6;
+    uint32_t cur_byte_pos   = i % 4;
+    uint8_t val             = clamp2(inbuf[i], fs_buf[i]) >> 6;
+
+
+
+    // stuff the resulting 2 bits into the current byte of outbuf
+    cur_byte                = (cur_byte << 2) + val;
+    if (cur_byte_pos == 3) {
+        outbuf[i>>2] = cur_byte;
+    }   
+  }
+
+}
+
+
+
+
 void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf, size_t len) {
     if (counter == 10){
         uint8_t  cur_byte = 0;
-        for(uint32_t i = 0; i < width*height; i++) {
-            uint32_t cur_out_data   = buf[i] >> 6;
-            uint32_t cur_byte_pos   = i % 4;
-            uint8_t val             = buf[i] >> 6;
-            cur_byte                = (cur_byte << 2) + val;
-            if (cur_byte_pos == 3) {
-                outbuf[i>>2] = cur_byte;
-                //cur_byte = 0;
-            }
-            
+        for(uint32_t i = 0; i < height; i++) {
+            floyd_steinberg(width,&buf[i*width],&outbuf[(i*width)>>2]);            
         }
 
         Serial.println("capture");
@@ -167,7 +216,10 @@ void setup() {
   Serial.setDebugOutput(true);
   Serial.println("allocating buffer");
   outbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
-  if (outbuf==NULL) {
+  fs_buf = (int8_t *)malloc(CAM_WIDTH*2);
+  if (outbuf != NULL && fs_buf != NULL) {
+    memset(fs_buf,0,CAM_WIDTH*2);
+  } else {
     Serial.println("buffer allocation failed");
   }
   Serial.println("camera init");
