@@ -1,0 +1,81 @@
+<html>
+  <body>
+
+    <div>Result:</div>
+    <div style="background-color: lightgreen; border:2px solid green;">
+      Success -- found location
+    </div>
+    <div style="background-color: lightred; border:2px solid red;">
+      Failure -- did not find location
+    </div>
+    <hr/>
+    <form action="/submit" method="POST">
+      <table>
+        <tr>
+          <td rowspan="8"><img width="400" src="logo.jpg"></td>
+          <td><label for="place">Wikipedia Place Name:</label></td>
+          <td><input type="text" id="place" placeholder="Epstein Island"></td>
+        </tr>
+        <tr>
+          <td colspan=2>
+            or...
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="latitude">Latitude:</label>
+          </td>
+          <td>
+            <input type="number" id="latitude">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="longitude">Longitude:</label>
+          </td>
+          <td>
+            <input type="number" id="longitude">
+          </td>
+        </tr>
+        <tr><td/><td><hr/></td></tr>
+        <tr>
+          <td>
+            <label for="comment">Comment:</label>
+          </td>
+          <td>
+            <input type="text" id="comment">
+          </td>
+        </tr>
+        <tr>
+          <td/>
+          <td>
+            <div><b>Sample Priorities:</b></div>
+            <div>1. Epstein Island</div>
+            <div>2. Votkinsk Machine Building Plant (ICBM rocket booster factory)</div>
+            <div>3. Area 51</div>
+            <div>4. Mt. Everest</div>
+            <div>5. Taj Mahal</div>
+            <div>...</div>
+            <div>10. Cincinnati Zoo</div> 
+          </td>
+        </tr>
+          
+        <tr>
+          <td>
+            <label for="priority">Priority:</label>
+          </td>
+          <td>
+            <input type="number" id="priority" min="1" max="10">
+          </td>
+        </tr>
+        <tr>
+          <td></td>
+          <td style="padding-top:20px;">
+            <button type="submit" id="submit">Submit</button>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </body>
+</html>
+
