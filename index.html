@@ -11,39 +11,39 @@
     <hr/>
     <form action="/submit" method="POST">
       <table>
-        <tr>
+        <tr style="background-color: lightgray;">
           <td rowspan="8"><img width="400" src="logo.jpg"></td>
           <td><label for="place">Wikipedia Place Name:</label></td>
           <td><input type="text" id="place" placeholder="Epstein Island"></td>
         </tr>
         <tr>
-          <td colspan=2>
-            or...
+          <td>
+            <center>or...</center>
           </td>
         </tr>
-        <tr>
+        <tr style="background-color: lightgray;">
           <td>
             <label for="latitude">Latitude:</label>
           </td>
           <td>
-            <input type="number" id="latitude">
+            <input type="number" style="width:200;" min="-90" max="90" id="latitude">
           </td>
         </tr>
-        <tr>
+        <tr style="background-color: lightgray;">
           <td>
             <label for="longitude">Longitude:</label>
           </td>
           <td>
-            <input type="number" id="longitude">
+            <input type="number" style="width:200;"  min="-180" max="180" id="longitude">
           </td>
         </tr>
         <tr><td/><td><hr/></td></tr>
-        <tr>
+        <tr style="background-color: lightgray;">
           <td>
             <label for="comment">Comment:</label>
           </td>
           <td>
-            <input type="text" id="comment">
+            <input style="width:100%;" type="text" id="comment">
           </td>
         </tr>
         <tr>
@@ -60,7 +60,7 @@
           </td>
         </tr>
           
-        <tr>
+        <tr style="background-color: lightgray;">
           <td>
             <label for="priority">Priority:</label>
           </td>
@@ -71,7 +71,7 @@
         <tr>
           <td></td>
           <td style="padding-top:20px;">
-            <button type="submit" id="submit">Submit</button>
+            <button type="submit" style=" id="submit">Submit</button>
           </td>
         </tr>
       </table>
