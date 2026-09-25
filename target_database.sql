@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS targets (
   longitude REAL NOT NULL,
   priority  REAL DEFAULT 5 NOT NULL,
   name      TEXT NOT NULL,
-  comment   TEXT
+  comment   TEXT,
+  approved  BOOL DEFAULT FALSE,
+  created   DEFAULT CURRENT_TIMESTAMP
 );
 

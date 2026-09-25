@@ -1,0 +1,106 @@
+<html>
+  <body>
+
+    <form action="/new" method="POST">
+      <table>
+        <tr style="background-color: lightgray;">
+          <td rowspan="8"><img width="400" src="/static/logo.jpg"></td>
+          <td><label for="place">Wikipedia Place Name:</label></td>
+          <td><input type="text" name="place" id="place" placeholder="Epstein Island"></td>
+        </tr>
+        <tr>
+          <td>
+            <center>or...</center>
+          </td>
+        </tr>
+        <tr style="background-color: lightgray;">
+          <td>
+            <label for="latitude">Latitude:</label>
+          </td>
+          <td>
+            <input type="number" style="width:200;" min="-90" max="90"name="latitude"  id="latitude">
+          </td>
+        </tr>
+        <tr style="background-color: lightgray;">
+          <td>
+            <label for="longitude">Longitude:</label>
+          </td>
+          <td>
+            <input type="number" style="width:200;"  min="-180" max="180" name="longitude" id="longitude">
+          </td>
+        </tr>
+        <tr><td/><td><hr/></td></tr>
+        <tr style="background-color: lightgray;">
+          <td>
+            <label for="comment">Comment:</label>
+          </td>
+          <td>
+            <input style="width:100%;" type="text" name="comment" id="comment">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div><b>Sample Priorities:</b></div>
+            <div>1. Epstein Island</div>
+            <div>2. Votkinsk Machine Building Plant (ICBM rocket booster factory)</div>
+            <div>3. Area 51</div>
+            <div>4. Mt. Everest</div>
+            <div>5. Taj Mahal</div>
+            <div>...</div>
+            <div>10. Cincinnati Zoo</div> 
+          </td>
+        </tr>
+          
+        <tr style="background-color: lightgray;">
+          <td>
+            <label for="priority">Priority:</label>
+          </td>
+          <td>
+            <input type="number" id="priority" min="1" max="10">
+          </td>
+        </tr>
+        <tr>
+          <td></td>
+          <td style="padding-top:20px;">
+            <button type="submit" style="padding: 10px 50px;" name="submit" id="submit">Submit</button>
+          </td>
+        </tr>
+      </table>
+    
+    {% if error %}
+    <div style="background-color: #aa7777; border-radius:10px; border:2px solid red;">
+      <div style='font-size:20px; padding:10px; background-color:lightred; color: white;'>Failed Result:</div>
+      <div style="background-color: darkred; padding:10px; color:white;">{{ error }}</div>
+    </div>
+    {% endif %}
+    
+    <hr/>
+      {% if last_few %}
+      <div><b>Last Few:</b></div>
+      <table>
+        <tr>
+          <th>Latitude</th>
+          <th>Longitude</th>
+          <th>Name</th>
+          <th>Comment</th>
+          <th>Created</th>
+          <th>priority</th>
+          <th>Approved?</th>
+          <th>Map...</td>
+        </tr>
+        {% for row in last_few %}
+        <tr>{% for i in row %}
+          <td style="padding-right:20px;">{{i}}</td>
+          {% endfor %}
+          <td> 
+            <a target="_blank" 
+               href="https://www.google.com/maps/search/?api=1&query={{ row[0] }}%2C{{ row[1] }}">map...</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+    </form>
+  </body>
+</html>
+
