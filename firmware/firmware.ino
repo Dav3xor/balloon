@@ -2,6 +2,10 @@
 #include "FS.h"
 #include <LittleFS.h>
 
+
+#include "tasks.h"
+#include "messages.h"
+
 //WROVER-KIT PIN Map
 #define CAM_PIN_PWDN    32 //power down is not used
 #define CAM_PIN_RESET   -1 //software reset will be performed
@@ -27,6 +31,13 @@
 #define CAM_HEIGHT      1200
 #define CAM_FRAMESIZE   FRAMESIZE_UXGA
 #define CAM_OUTBUFSIZE  (CAM_WIDTH*CAM_HEIGHT)/4
+
+
+// Task Handles...
+TaskHandle_t GPSTaskHandle = NULL;
+TaskHandle_t SchedulerTaskHandle = NULL;
+
+
 static camera_config_t camera_config = {
     .pin_pwdn  = CAM_PIN_PWDN,
     .pin_reset = CAM_PIN_RESET,
@@ -217,9 +228,32 @@ void setup() {
   Serial.println("camera init done");
   
   if(!LittleFS.begin(true)){
-  Serial.println("LittleFS Mount Failed");
-  return;
-}
+    Serial.println("LittleFS Mount Failed");
+    return;
+  }
+  
+  // Build queues
+  LocationQueue = xQueueCreate(10, sizeof( Position ) );
+
+  // Start our tasks
+  xTaskCreatePinnedToCore(
+    GPSTask,           // Name of the task function
+    "GPSTask",  // Descriptive name for debugging
+    10000,             // Stack size in words (allocate enough memory)
+    NULL,              // Parameter to pass to the task (NULL if none)
+    1,                 // Task priority (higher numbers = higher priority)
+    &GPSTaskHandle,     // Task handle to track the task (NULL if not needed)
+    0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
+  );
+    xTaskCreatePinnedToCore(
+    SchedulerTask,           // Name of the task function
+    "SchedulerTask",  // Descriptive name for debugging
+    10000,             // Stack size in words (allocate enough memory)
+    NULL,              // Parameter to pass to the task (NULL if none)
+    1,                 // Task priority (higher numbers = higher priority)
+    &SchedulerTaskHandle,     // Task handle to track the task (NULL if not needed)
+    0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
+  );
 }
 
 void loop() {
