@@ -10,20 +10,28 @@ void SchedulerTask(void * parameter) {
   float lat_speed = 0;
 
   for(;;) {
-    Serial.println("Hello from the GPS task!");
-    Position cur_position;
+    SchedulerMessage cur_message;
 
         if( xQueueReceive( LocationQueue,
-                           &( cur_position),
+                           &( cur_message),
                            ( TickType_t ) 10 ) == pdPASS )
 
         {
-            Serial.print("New Location: ");
-            Serial.print(cur_position.latitude);
-            Serial.print(",");
-            Serial.print(cur_position.longitude);
-            Serial.println("");
-
+          switch(cur_message.type) {
+            case POSITION_MSG:
+              //Serial.print("New Location: ");
+              //Serial.print(cur_message.msg.position.latitude);
+              //Serial.print(",");
+              //Serial.print(cur_message.msg.position.longitude);
+              //Serial.println("");
+              break;
+            case CAMERA_DONE_MSG:
+              //Serial.println("Camera Finished!");
+              break;
+            case WSPR_DONE_MSG:
+              //Serial.println("WSPR Done Transmitting");
+              break;
+          }
 
         }
 

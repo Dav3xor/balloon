@@ -10,8 +10,8 @@ void GPSTask(void * parameter) {
   float lat_speed = 0;
 
   for(;;) {
-    Serial.println("Hello from the GPS task!");
-    Position cur_position = {123.0+lat_speed,45.0};
+    //Serial.println("Hello from the GPS task!");
+    SchedulerMessage cur_position = {POSITION_MSG, {.position = {123.0+lat_speed,45.0}}};
     lat_speed += .01;
 
     xQueueSend(LocationQueue,

@@ -3,5 +3,6 @@
 
 void GPSTask(void *); 
 void SchedulerTask(void *);
+void CameraTask(void *);
 
 #endif
