@@ -17,6 +17,14 @@ typedef struct SchedulerMessage {
   }msg;  
 };
 
-inline QueueHandle_t LocationQueue = NULL;
+
+#define TAKE_PICTURE_MSG 1
+
+typedef struct CameraMessage {
+  uint32_t type;
+};
+
+inline QueueHandle_t SchedulerQueue = NULL;
+inline QueueHandle_t CameraQueue   = NULL;
 
 #endif

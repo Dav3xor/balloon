@@ -85,7 +85,6 @@ const char *grays = " .~*&%@#";
 //const char *grays2 = " ~+#";
 const char *grays2 = "#+~ ";
 const int16_t midpoints[4] = { 32, 96, 160, 224 };
-uint32_t counter = 0;
 
 int8_t clamp(int16_t val, int16_t error){
   if (val+error > 255) {
@@ -137,36 +136,32 @@ void make_2bit(size_t width, size_t height, uint8_t *inbuf, uint8_t *outbuf) {
 
 
 void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf, size_t len) {
-    if (counter == 10){
-        uint8_t  cur_byte = 0;
-        for(uint32_t i = 0; i < height; i++) {
-            floyd_steinberg(width,&buf[i*width],&outbuf[(i*width)>>2]);            
-        }
-        make_2bit(width, height, buf,outbuf);
-        Serial.println("capture");
-        uint32_t zoom = 20;
 
+  uint8_t  cur_byte = 0;
+  for(uint32_t i = 0; i < height; i++) {
+      floyd_steinberg(width,&buf[i*width],&outbuf[(i*width)>>2]);            
+  }
+  make_2bit(width, height, buf,outbuf);
+  Serial.println("capture");
+  uint32_t zoom = 20;
 
+  // print the original buffer from the camera
+  //for(int i=0; i < height/zoom; i++) {
+  //    for(int j=0; j < width/zoom*2; j++){
+  //        Serial.print(grays[buf[i*(width*zoom) + j*zoom/2]>>5]);
+  //    }
+  //    Serial.println("");
+  //}
 
+  // print the 2 bits per pixel result.
+  for(int i=0; i < height/zoom; i++) {
+      for(int j=0; j < width/zoom*2; j++){
+          Serial.print(grays2[(outbuf[i*((width>>2)*zoom) + ((j*zoom)>>2)/2] >> 6)&3]);
+      }
+      Serial.println("");
+  }
+  writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
 
-        // print the original buffer from the camera
-        //for(int i=0; i < height/zoom; i++) {
-        //    for(int j=0; j < width/zoom*2; j++){
-        //        Serial.print(grays[buf[i*(width*zoom) + j*zoom/2]>>5]);
-        //    }
-        //    Serial.println("");
-        //}
-
-        // print the 2 bits per pixel result.
-        for(int i=0; i < height/zoom; i++) {
-            for(int j=0; j < width/zoom*2; j++){
-                Serial.print(grays2[(outbuf[i*((width>>2)*zoom) + ((j*zoom)>>2)/2] >> 6)&3]);
-            }
-            Serial.println("");
-        }
-        writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
-    }
-    counter += 1;
 }
 
 
@@ -206,12 +201,16 @@ esp_err_t camera_init(){
 
 esp_err_t camera_capture(){
     //acquire a frame
+    for(int i=0;i<5;i++){
+      camera_fb_t *fb = esp_camera_fb_get();
+      esp_camera_fb_return(fb);
+    }
     camera_fb_t * fb = esp_camera_fb_get();
     if (!fb) {
         ESP_LOGE(TAG, "Camera Capture Failed");
         return ESP_FAIL;
     }
-    //replace this with your own function
+
     process_image(fb->width, fb->height, fb->format, fb->buf, fb->len);
   
     //return the frame buffer back to the driver for reuse
@@ -226,16 +225,14 @@ void CameraTask(void * parameter) {
   Serial.println(xPortGetCoreID()); // Prints which core it is running on
 
 
-  Serial.println("camera init");
+  //Serial.println("camera init");
   Serial.println(camera_init());
-  Serial.println("camera init done");
+  //Serial.println("camera init done");
  
-  Serial.println("allocating buffer");
+  //Serial.println("allocating buffer");
   outbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
   
-  if (outbuf != NULL ) {
-    Serial.println("buffer allocation succeeded");
-  } else {
+  if (outbuf == NULL ) {
     Serial.println("buffer allocation failed");
   }
   
@@ -244,11 +241,38 @@ void CameraTask(void * parameter) {
     return;
   }
 
+  uint32_t num_pictures = 0;
+
   for(;;) {
-    //Serial.println("Hello from the Camera task!");
-    camera_capture();
-    // Always use vTaskDelay instead of delay() inside FreeRTOS tasks
-    vTaskDelay(1000 / portTICK_PERIOD_MS); 
+    CameraMessage cur_message;
+    if( xQueueReceive( CameraQueue,
+                        &( cur_message),
+                        portMAX_DELAY))
+
+    {
+      switch(cur_message.type) {
+        case TAKE_PICTURE_MSG:
+        if(num_pictures == 0){
+          Serial.println("taking picture...");
+            camera_capture();
+            //Serial.print("New Location: ");
+            //Serial.print(cur_message.msg.position.latitude);
+            //Serial.print(",");
+            //Serial.print(cur_message.msg.position.longitude);
+            //Serial.println("");
+            num_pictures = 1;
+          break;
+        case CAMERA_DONE_MSG:
+          //Serial.println("Camera Finished!");
+          break;
+        case WSPR_DONE_MSG:
+          //Serial.println("WSPR Done Transmitting");
+          break;
+        }
+
+    }
+
   }
+}
 }
 

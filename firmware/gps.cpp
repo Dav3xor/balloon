@@ -14,11 +14,11 @@ void GPSTask(void * parameter) {
     SchedulerMessage cur_position = {POSITION_MSG, {.position = {123.0+lat_speed,45.0}}};
     lat_speed += .01;
 
-    xQueueSend(LocationQueue,
+    xQueueSend(SchedulerQueue,
                ( void * ) &cur_position, 
                ( TickType_t ) 0 );
     // Always use vTaskDelay instead of delay() inside FreeRTOS tasks
-    vTaskDelay(1000 / portTICK_PERIOD_MS); 
+    vTaskDelay(1000/ portTICK_PERIOD_MS); 
   }
 }
 

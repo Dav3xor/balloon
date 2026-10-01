@@ -7,10 +7,7 @@
 
 
 
-// Task Handles...
-TaskHandle_t GPSTaskHandle = NULL;
-TaskHandle_t SchedulerTaskHandle = NULL;
-TaskHandle_t CameraTaskHandle = NULL;
+
 
 
 
@@ -27,7 +24,8 @@ void setup() {
 
   
   // Build queues
-  LocationQueue = xQueueCreate(10, sizeof( SchedulerMessage) );
+  SchedulerQueue = xQueueCreate(10, sizeof(SchedulerMessage));
+  CameraQueue   = xQueueCreate(10, sizeof(CameraMessage));
 
   // Start our tasks
   xTaskCreatePinnedToCore(
