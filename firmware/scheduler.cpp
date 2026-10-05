@@ -5,11 +5,11 @@
 void change_position(float lat, float lon){
   // TODO: update target list, etc...
 
-  //Serial.print("New Location: ");
-  //Serial.print(cur_message.msg.position.latitude);
-  //Serial.print(",");
-  //Serial.print(cur_message.msg.position.longitude);
-  //Serial.println("");
+  Serial.print("New Location: ");
+  Serial.print(lat);
+  Serial.print(",");
+  Serial.print(lon);
+  Serial.println("");
   
   // for now, just take a picture...
   CameraMessage take_picture = {TAKE_PICTURE_MSG};

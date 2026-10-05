@@ -46,6 +46,7 @@ void setup() {
     &SchedulerTaskHandle,     // Task handle to track the task (NULL if not needed)
     0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
   );
+  /*
       xTaskCreatePinnedToCore(
     CameraTask,           // Name of the task function
     "CameraTask",  // Descriptive name for debugging
@@ -55,6 +56,7 @@ void setup() {
     &SchedulerTaskHandle,     // Task handle to track the task (NULL if not needed)
     1                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
   );
+*/
 }
 
 void loop() {
