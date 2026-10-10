@@ -3,34 +3,36 @@
 #include "compression/lz.h"
 #include "esp_camera.h"
 #include "FS.h"
-#include <LittleFS.h>
+#include "SD.h"
 
-//WROVER-KIT PIN Map
-#define CAM_PIN_PWDN    32 //power down is not used
-#define CAM_PIN_RESET   -1 //software reset will be performed
-#define CAM_PIN_XCLK    0
-#define CAM_PIN_SIOD    26
-#define CAM_PIN_SIOC    27
 
-#define CAM_PIN_D7      35
-#define CAM_PIN_D6      34
-#define CAM_PIN_D5      39
-#define CAM_PIN_D4      36
-#define CAM_PIN_D3      21
-#define CAM_PIN_D2      19
-#define CAM_PIN_D1      18
-#define CAM_PIN_D0       5
-#define CAM_PIN_VSYNC   25
-#define CAM_PIN_HREF    23
-#define CAM_PIN_PCLK    22
 
+#define	CAM_XMCLK	10
+#define	CAM_DVP_Y8 11
+#define	CAM_DVP_Y7 12
+#define	CAM_DVP_PCLK 13
+
+#define	CAM_DVP_Y6 14
+#define	CAM_DVP_Y2 15
+#define	CAM_DVP_Y5 16
+#define	CAM_DVP_Y3 17
+#define	CAM_DVP_Y4 18
+#define	CAM_DVP_VSYNC 38
+#define	CAM_CAM_SCL	39
+#define	CAM_CAM_SDA 40
+#define	CAM_DVP_HREF 47	
+#define	CAM_DVP_Y9 48
 
 // define what width/height we're using
-#define CAM_WIDTH       1600
-#define CAM_HEIGHT      1200
-#define CAM_FRAMESIZE   FRAMESIZE_UXGA
+#define CAM_WIDTH       160
+#define CAM_HEIGHT      120
+#define CAM_FRAMESIZE     FRAMESIZE_QQVGA
+//#define CAM_FRAMESIZE   FRAMESIZE_SXGA
+//#define CAM_FRAMESIZE   FRAMESIZE_QXGA
 #define CAM_OUTBUFSIZE  (CAM_WIDTH*CAM_HEIGHT)/4
 
+#define CAM_PIN_PWDN -1
+/*
 void writeFile(fs::FS &fs, const char *path, uint8_t *data, size_t len){
   Serial.printf("Writing file: %s\r\n", path);
 
@@ -39,32 +41,44 @@ void writeFile(fs::FS &fs, const char *path, uint8_t *data, size_t len){
     Serial.println("- failed to open file for writing");
     return;
   }
-  if(file.write(data,len)){
-    Serial.println("- file written");
-  } else {
-    Serial.println("- write failed");
+
+  size_t num_chunks = len/512;
+  for (int i=0; i<num_chunks; i++) {
+    size_t num_write = 512;
+    if (i*512 + 512 > len) {
+      num_write = len-(i*512);
+    }
+    int result=file.write(&data[i*512],num_write);
+    if (result < num_write) {
+        Serial.printf("Write failed! Expected %d bytes, wrote %d\n", num_write, result);
+        break;
+        // Check standard error codes
+    }
+    yield();
   }
   file.close();
+  Serial.println("- file written");
 }
+*/
 
 static camera_config_t camera_config = {
     .pin_pwdn  = CAM_PIN_PWDN,
-    .pin_reset = CAM_PIN_RESET,
-    .pin_xclk = CAM_PIN_XCLK,
-    .pin_sccb_sda = CAM_PIN_SIOD,
-    .pin_sccb_scl = CAM_PIN_SIOC,
+    .pin_reset = -1,
+    .pin_xclk = CAM_XMCLK,
+    .pin_sccb_sda = CAM_CAM_SDA,
+    .pin_sccb_scl = CAM_CAM_SCL,
 
-    .pin_d7 = CAM_PIN_D7,
-    .pin_d6 = CAM_PIN_D6,
-    .pin_d5 = CAM_PIN_D5,
-    .pin_d4 = CAM_PIN_D4,
-    .pin_d3 = CAM_PIN_D3,
-    .pin_d2 = CAM_PIN_D2,
-    .pin_d1 = CAM_PIN_D1,
-    .pin_d0 = CAM_PIN_D0,
-    .pin_vsync = CAM_PIN_VSYNC,
-    .pin_href = CAM_PIN_HREF,
-    .pin_pclk = CAM_PIN_PCLK,
+    .pin_d7 = CAM_DVP_Y9,
+    .pin_d6 = CAM_DVP_Y8,
+    .pin_d5 = CAM_DVP_Y7,
+    .pin_d4 = CAM_DVP_Y6,
+    .pin_d3 = CAM_DVP_Y5,
+    .pin_d2 = CAM_DVP_Y4,
+    .pin_d1 = CAM_DVP_Y3,
+    .pin_d0 = CAM_DVP_Y2,
+    .pin_vsync = CAM_DVP_VSYNC,
+    .pin_href = CAM_DVP_HREF,
+    .pin_pclk = CAM_DVP_PCLK,
 
     .xclk_freq_hz = 20000000,
     .ledc_timer = LEDC_TIMER_0,
@@ -160,7 +174,7 @@ void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf
       }
       Serial.println("");
   }
-  writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
+  //writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
 
 }
 
@@ -225,9 +239,16 @@ void CameraTask(void * parameter) {
   Serial.println(xPortGetCoreID()); // Prints which core it is running on
 
 
-  //Serial.println("camera init");
-  Serial.println(camera_init());
-  //Serial.println("camera init done");
+  Serial.println("camera init...");
+  int init_result = camera_init();
+  if (init_result == ESP_OK) {
+    Serial.println("camera is go");
+  } else {
+    Serial.print("camera init failed, result code: ");
+    Serial.println(init_result);
+  }
+  
+  Serial.println("camera init done");
  
   //Serial.println("allocating buffer");
   outbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
@@ -236,10 +257,7 @@ void CameraTask(void * parameter) {
     Serial.println("buffer allocation failed");
   }
   
-  if(!LittleFS.begin(true)){
-    Serial.println("LittleFS Mount Failed");
-    return;
-  }
+
 
   uint32_t num_pictures = 0;
 
@@ -247,20 +265,19 @@ void CameraTask(void * parameter) {
     CameraMessage cur_message;
     if( xQueueReceive( CameraQueue,
                         &( cur_message),
-                        portMAX_DELAY))
-
-    {
+                        portMAX_DELAY)) {
       switch(cur_message.type) {
         case TAKE_PICTURE_MSG:
-        if(num_pictures == 0){
-          Serial.println("taking picture...");
-            camera_capture();
-            //Serial.print("New Location: ");
-            //Serial.print(cur_message.msg.position.latitude);
-            //Serial.print(",");
-            //Serial.print(cur_message.msg.position.longitude);
-            //Serial.println("");
-            num_pictures = 1;
+          if(num_pictures % 3 == 0){
+            Serial.println("taking picture...");
+              camera_capture();
+              //Serial.print("New Location: ");
+              //Serial.print(cur_message.msg.position.latitude);
+              //Serial.print(",");
+              //Serial.print(cur_message.msg.position.longitude);
+              //Serial.println("");
+          }
+          num_pictures += 1;
           break;
         case CAMERA_DONE_MSG:
           //Serial.println("Camera Finished!");
@@ -269,10 +286,10 @@ void CameraTask(void * parameter) {
           //Serial.println("WSPR Done Transmitting");
           break;
         }
+      }
 
     }
 
-  }
 }
-}
+
 

@@ -2,23 +2,22 @@
 #include "messages.h"
 
 // 1. Define the task function
-void GPSTask(void * parameter) {
+void GPSTask(void* parameter) {
   Serial.print("GPS Task is running on Core: ");
-  Serial.println(xPortGetCoreID()); // Prints which core it is running on
+  Serial.println(xPortGetCoreID());  // Prints which core it is running on
 
 
   float lat_speed = 0;
 
-  for(;;) {
+  for (;;) {
     //Serial.println("Hello from the GPS task!");
-    SchedulerMessage cur_position = {POSITION_MSG, {.position = {123.0+lat_speed,45.0}}};
+    SchedulerMessage cur_position = { POSITION_MSG, { .position = { 123.0 + lat_speed, 45.0 } } };
     lat_speed += .01;
 
     xQueueSend(SchedulerQueue,
-               ( void * ) &cur_position, 
-               ( TickType_t ) 0 );
+               (void*)&cur_position,
+               (TickType_t)0);
     // Always use vTaskDelay instead of delay() inside FreeRTOS tasks
-    vTaskDelay(1000/ portTICK_PERIOD_MS); 
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
-

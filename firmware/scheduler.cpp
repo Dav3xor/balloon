@@ -1,15 +1,25 @@
 #include <Arduino.h>
 #include "messages.h"
+#include "wishlist.h"
+
+
+
+
+
+float distance(float lat1, float lon1, float lat2, float lon2) {
+  return (2*asin(sqrt(pow(sin((lat1-lat2)/2),2.0) + 
+          cos(lat1)*cos(lat2)*pow((sin((lon1-lon2)/2)),2.0))));
+}
 
 
 void change_position(float lat, float lon){
   // TODO: update target list, etc...
 
-  Serial.print("New Location: ");
-  Serial.print(lat);
-  Serial.print(",");
-  Serial.print(lon);
-  Serial.println("");
+  //Serial.print("New Location: ");
+  //Serial.print(lat);
+  //Serial.print(",");
+  //Serial.print(lon);
+  //Serial.println("");
   
   // for now, just take a picture...
   CameraMessage take_picture = {TAKE_PICTURE_MSG};

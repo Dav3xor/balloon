@@ -1,0 +1,20 @@
+#ifndef __WISHLIST_H__
+#define __WISHLIST_H__
+
+typedef struct Target { // lat long in decimal degrees\n")
+    float lat;
+    float lon;
+    float distance;
+    uint16_t priority;
+    uint16_t flags;
+    uint32_t id;
+} __attribute__((__packed__)) Target;
+
+inline Target targets[] = { {% for target in targets %}
+    { {{ "{:>11.6g}".format(target[0]) }}, {{ "{:>11.6g}".format(target[1]) }}, {{ "{:>4}".format(target[2]) }}, 0, {{ "{:>5}".format(target[5]) }} }, // {{ "{:<20}".format(target[3]) if target[3] else '' }} {{ " - {:>10}".format(target[4][:30] if target[4] else '') }} {% endfor %}
+};
+
+inline uint32_t sorted_targets [{{ targets | length }}];
+
+
+#endif
