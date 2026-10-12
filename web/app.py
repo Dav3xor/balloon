@@ -5,6 +5,8 @@ from flask import redirect
 import jinja2
 import sqlite3
 import wikipediaapi
+import geojson
+import json
 
 print (wikipediaapi.__version__)
 #set up wikipediaAPI agent
@@ -14,6 +16,7 @@ app = Flask(__name__)
 
 stmt1 = "INSERT INTO targets (latitude,longitude,name,comment) VALUES (?,?,?,?);"
 stmt2 = "SELECT latitude,longitude,name,comment,created,priority,approved FROM targets ORDER BY rowid DESC LIMIT 5;" 
+stmt3 = "SELECT latitude,longitude,name,approved FROM targets;" 
 
 
 def return_index(conn,**args):
@@ -23,6 +26,29 @@ def return_index(conn,**args):
 
     last_few = cursor.execute(stmt2).fetchall()
     return render_template('index.html',error=error, last_few=last_few)
+@app.route("/targets")
+def targets():
+    conn = sqlite3.connect('db.sqlite3')
+    cursor = conn.cursor()
+    targets = cursor.execute(stmt3).fetchall()
+
+    json_targets = []
+    for target in targets:
+        json_targets.append(geojson.Point((target[1],target[0])))
+
+    targets = json.dumps(geojson.GeometryCollection(json_targets))
+    
+    print(targets)
+    response = app.response_class(
+        response=targets,
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@app.route("/globe")
+def globe():
+    return render_template('globe.html')
 
 @app.route("/new", methods = ['POST'])
 def new():
@@ -36,6 +62,12 @@ def new():
     place     = request.form['place'] \
 
     error     = None
+   
+    # handle "45.0002,-123.4567"  input...
+    if (latitude and not longitude) and ',' in latitude:
+        latitude,longitude = latitude.split(',')
+        latitude           = latitude.strip()
+        longitude          = longitude.strip()
 
     if place and not (latitude and longitude):
         place = place.strip()

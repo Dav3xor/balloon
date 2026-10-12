@@ -1,6 +1,11 @@
 #ifndef __WISHLIST_H__
 #define __WISHLIST_H__
 
+#define NUM_TARGETS {{ targets | length }}
+#define TARGET_APPROACHING 1
+#define TARGET_DONE        2
+#define TARGET_
+
 typedef struct Target { // lat long in decimal degrees\n")
     float lat;
     float lon;
@@ -11,10 +16,10 @@ typedef struct Target { // lat long in decimal degrees\n")
 } __attribute__((__packed__)) Target;
 
 inline Target targets[] = { {% for target in targets %}
-    { {{ "{:>11.6g}".format(target[0]) }}, {{ "{:>11.6g}".format(target[1]) }}, {{ "{:>4}".format(target[2]) }}, 0, {{ "{:>5}".format(target[5]) }} }, // {{ "{:<20}".format(target[3]) if target[3] else '' }} {{ " - {:>10}".format(target[4][:30] if target[4] else '') }} {% endfor %}
+    { {{ "{:>11.6g}".format(target[0]*3.14159/180.0) }}, {{ "{:>11.6g}".format(target[1]*3.14159/180.0) }}, 0, {{ "{:>4}".format(target[2])|int }}, 0, {{ "{:>5}".format(target[5]) }} }, // {{ "{:<20}".format(target[3]) if target[3] else '' }} {{ " - {:>10}".format(target[4][:30] if target[4] else '') }} {% endfor %}
 };
 
-inline uint32_t sorted_targets [{{ targets | length }}];
+inline uint32_t sorted_targets [NUM_TARGETS];
 
 
 #endif

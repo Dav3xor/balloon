@@ -14,7 +14,7 @@ priority_counter = 0
 conn   = sqlite3.connect('web/db.sqlite3')
 cursor = conn.cursor()
 
-targets = cursor.execute('SELECT latitude, longitude, priority, name, comment, rowid FROM targets ORDER BY rowid;').fetchall()
+targets = cursor.execute('SELECT latitude, longitude, priority, name, comment, rowid FROM targets WHERE approved=1 ORDER BY rowid;').fetchall()
         
 env      = Environment(loader=FileSystemLoader(""))
 template = env.get_template("wishlist.jinja2")
