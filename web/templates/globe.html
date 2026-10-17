@@ -6,6 +6,7 @@
 </head>
 
 <body>
+  <div>National Reconnaisance Orifice</div>
   <div id="globeViz"></div>
 
   <script type="module">
@@ -14,36 +15,16 @@
     import { interpolateYlOrRd } from 'https://esm.sh/d3-scale-chromatic';
 
     const colorScale = scaleSequentialSqrt(interpolateYlOrRd);
-
-
-async function build_map() {
-  try {
-    // Step 1: Fetch user info
-    const targetResponse = await fetch('/targets');
-    if (!targetResponse.ok) throw new Error('Targets request failed');
-    const targets = await targetResponse.json();
     
-    console.log(`Targets acquired`);
-
+    const targets = {{ targets|safe }};
+    /*
+    new Globe(document.getElementById('globeViz'))
+      .pointsData(targets)
+      .pointAltitude('a')
+      .pointRadius('r')
+      .pointColor('c');
+    */ 
     
-    const countryResponse = await fetch('/static/ne_110m_admin_0_countries.geojson');
-    if (!countryResponse.ok) throw new Error('Targets request failed');
-    const countries = await countryResponse.json();
-
-    console.log(`Countries acquired`);
-
-
-    return [targets, countries];
-
-  } catch (error) {
-    // Captures errors from either fetch request or JSON parsing
-    console.error('An error occurred:', error);
-  }
-}
-
-var stuff = await build_map();
-console.log(stuff[0]);
-
     // GDP per capita (avoiding countries with small pop)
     const getVal = feat => feat.properties.GDP_MD_EST / Math.max(1e5, feat.properties.POP_EST);
 
@@ -53,8 +34,13 @@ console.log(stuff[0]);
       colorScale.domain([0, maxVal]);
 
       const world = new Globe(document.getElementById('globeViz'))
+        .pointsData(targets)
+        .pointAltitude('a')
+        .pointRadius('r')
+        .pointColor('c')
+        
         //.globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
-        .backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
+        //.backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
         .lineHoverPrecision(0)
         .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
         .polygonAltitude(0.01)
@@ -68,11 +54,12 @@ console.log(stuff[0]);
           Population: <i>${d.POP_EST}</i>
         `)
         .onPolygonHover(hoverD => world
-          .polygonAltitude(d => d === hoverD ? 0.04 : 0.01)
+          .polygonAltitude(d => d === hoverD ? 0.03 : 0.01)
           .polygonCapColor(d => d === hoverD ? 'steelblue' : 'rgba(100,70,70,1.0)')
           //.polygonCapColor(d => d === hoverD ? 'steelblue' : colorScale(getVal(d)))
         )
         .polygonsTransitionDuration(300);
+
     });
   </script>
 </body>

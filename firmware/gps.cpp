@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "messages.h"
+#include "navigation.h"
 
 // 1. Define the task function
 void GPSTask(void* parameter) {
@@ -11,7 +12,12 @@ void GPSTask(void* parameter) {
 
   for (;;) {
     //Serial.println("Hello from the GPS task!");
-    SchedulerMessage cur_position = { POSITION_MSG, { .position = { 45.0, -123.5 + lat_speed } } };
+    Point point(45.0,-123.5+lat_speed);
+
+    SchedulerMessage cur_position = { .type = POSITION_MSG, 
+                                      .msg = { .position = { .pos = point, 
+                                                             .course = 0, 
+                                                             .speed = 0 } } };
     lat_speed += .005;
 
     xQueueSend(SchedulerQueue,

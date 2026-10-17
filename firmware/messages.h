@@ -3,6 +3,8 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
+#include "navigation.h"
+
 #define POSITION_MSG     1
 #define WSPR_DONE_MSG    2
 #define CAMERA_DONE_MSG  3
@@ -11,8 +13,9 @@ typedef struct SchedulerMessage {
   uint32_t type;
   union {
     struct {
-      float latitude;
-      float longitude;
+      Point pos;
+      float course; 
+      float speed;
     } position;
   }msg;  
 };

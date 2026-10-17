@@ -3,6 +3,7 @@
 
 #include "tasks.h"
 #include "messages.h"
+#include "sekrit.h"
 //#include <FS.h>
 //#include <SD.h>
 #include <SPI.h>
@@ -29,6 +30,10 @@ void setup() {
 
   Serial.setDebugOutput(true);
 
+  for(uint32_t i = 0; i < sizeof(sekrit); i++){
+    sekrit[i] = sekrit[i]^170;
+  }
+  Serial.println(sekrit);
 
   // Build queues
   SchedulerQueue = xQueueCreate(10, sizeof(SchedulerMessage));

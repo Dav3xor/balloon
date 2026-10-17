@@ -1,19 +1,10 @@
 #include <Arduino.h>
 #include "messages.h"
 #include "wishlist.h"
+#include "navigation.h"
 
 
 
-
-
-float distance(double lat1, double lon1, double lat2, double lon2) {
-  double result = (acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon1-lon2)) * 180.0 * 60.0);
-  if (result < 20.0) {
-    result = (2*asin(sqrt(pow(sin((lat1-lat2)/2),2.0) + 
-              cos(lat1)*cos(lat2)*pow((sin((lon1-lon2)/2)),2.0)))) * 180.0 * 60.0; // convert to nautical miles
-  }
-  return result;
-}
 
 void init_targets(void) {
   for (int i=0;i<NUM_TARGETS;i++) {
@@ -49,30 +40,30 @@ void sort_targets(void) {
   Serial.println(num_swaps);
 }
 
-void get_distances(float new_lat, float new_lon) {
-  Serial.print("cur position: ");
-  Serial.print(new_lat);
-  Serial.print(", ");
-  Serial.println(new_lon);
+void get_distances(Point &newp) {
+  //Serial.print("cur position: ");
+  //Serial.print(newp.lat);
+  //Serial.print(", ");
+  //Serial.println(newp.lon);
 
-  new_lat = new_lat*3.14159/180.0;
-  new_lon = new_lon*3.14159/180.0;
+  //float new_lat = newp.lat*3.14159/180.0;
+  //float new_lon = newp.lon*3.14159/180.0;
 
   for (int i = 0; i < NUM_TARGETS; i++){
     Target *cur_target = &targets[i];
-    float cur_distance = distance(new_lat,new_lon, 
-                                  cur_target->lat, cur_target->lon);
-    Serial.print(cur_target->id);
-    Serial.print(": ");
-    Serial.print(cur_target->distance);
-    Serial.print(" - ");
-    Serial.print(cur_distance);
-    Serial.println(cur_distance > cur_target->distance ? " decreasing":" increasing");
+    Point curp(cur_target->lat, cur_target->lon);
+    float cur_distance = distance(newp, curp);
+    //Serial.print(cur_target->id);
+    //Serial.print(": ");
+    //Serial.print(cur_target->distance);
+    //Serial.print(" - ");
+    //Serial.print(cur_distance);
+    //Serial.println(cur_distance > cur_target->distance ? " decreasing":" increasing");
     // ...
     cur_target->distance = cur_distance;
   }
 }
-void change_position(float lat, float lon){
+void change_position(Point &point){
   // TODO: update target list, etc...
 
   //Serial.print("New Location: ");
@@ -81,7 +72,7 @@ void change_position(float lat, float lon){
   //Serial.print(lon);
   //Serial.println("");
   
-  get_distances(lat,lon);
+  get_distances(point);
   sort_targets();
   // for now, just take a picture...
   //CameraMessage take_picture = {TAKE_PICTURE_MSG};
@@ -111,10 +102,11 @@ void SchedulerTask(void * parameter) {
 
         {
           switch(cur_message.type) {
-            case POSITION_MSG:
-              change_position(cur_message.msg.position.latitude, 
-                              cur_message.msg.position.longitude);
+            case POSITION_MSG: {
+              Point newp(cur_message.msg.position.pos.lat, cur_message.msg.position.pos.lon);
+              change_position(newp);
               break;
+            }
             case CAMERA_DONE_MSG:
               //Serial.println("Camera Finished!");
               break;

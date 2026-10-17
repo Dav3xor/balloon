@@ -5,7 +5,6 @@ from flask import redirect
 import jinja2
 import sqlite3
 import wikipediaapi
-import geojson
 import json
 
 print (wikipediaapi.__version__)
@@ -16,7 +15,7 @@ app = Flask(__name__)
 
 stmt1 = "INSERT INTO targets (latitude,longitude,name,comment) VALUES (?,?,?,?);"
 stmt2 = "SELECT latitude,longitude,name,comment,created,priority,approved FROM targets ORDER BY rowid DESC LIMIT 5;" 
-stmt3 = "SELECT latitude,longitude,name,approved FROM targets;" 
+stmt3 = "SELECT latitude,longitude,name,approved,priority FROM targets;" 
 
 
 def return_index(conn,**args):
@@ -26,29 +25,36 @@ def return_index(conn,**args):
 
     last_few = cursor.execute(stmt2).fetchall()
     return render_template('index.html',error=error, last_few=last_few)
-@app.route("/targets")
+
+
 def targets():
     conn = sqlite3.connect('db.sqlite3')
     cursor = conn.cursor()
-    targets = cursor.execute(stmt3).fetchall()
+    db_targets = cursor.execute(stmt3).fetchall()
+    colors = ['#ffeeee','#ffcccc','#ffaaaa','#ff8888','#ff6666']
+    targets = []
+    for target in db_targets:
+        if target[4]:
+            c = colors[int(target[4]-1)]
+        else:
+            c = colors[-1]
+        point = {'lat':  target[0], 
+                 'lng':  target[1],
+                 'apr':  target[3],
+                 'r':    .08,
+                 'a':    0.01, 
+                 'c':    c,
+                 'name': target[2]}
+        targets.append(point)
+    return targets
 
-    json_targets = []
-    for target in targets:
-        json_targets.append(geojson.Point((target[1],target[0])))
-
-    targets = json.dumps(geojson.GeometryCollection(json_targets))
-    
-    print(targets)
-    response = app.response_class(
-        response=targets,
-        status=200,
-        mimetype='application/json'
-    )
-    return response
 
 @app.route("/globe")
 def globe():
-    return render_template('globe.html')
+    return render_template('globe.html',targets=targets())
+
+
+
 
 @app.route("/new", methods = ['POST'])
 def new():
