@@ -18,5 +18,7 @@ struct Fix {
 
 float distance(Point &a, Point &b);
 Fix   build_fix(Point &vehicle, Point &target, float course, float speed);
-
+void  print_point(Point &p);
+void  print_fix(Fix &fix);
+float deg_to_rad(float val);
 #endif

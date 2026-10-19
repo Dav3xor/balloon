@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <math.h>
 #include "navigation.h"
 
@@ -11,24 +12,38 @@ float distance(Point &a, Point &b) {
   return result;
 }
 
+float deg_to_rad(float val) {
+  return val*3.14159/180.0;
+}
+
+
+
 Fix build_fix(Point &vehicle, Point &target, float course, float speed) {
-  float vy = vehicle.lat*3.14159/180.0;
+  float vy = vehicle.lat;
   float adjust = cos(vy);
-  float vx = adjust * (vehicle.lon*3.14159/180.0);
-  
-  float ty = target.lat*3.14159/180.0;
-  float tx = adjust * (target.lon*3.14159/180.0);
+
+  float vx = adjust * (vehicle.lon);
+  //Serial.print("adj="); Serial.println(adjust);
+
+  float ty = target.lat;
+  float tx = adjust * (target.lon);
 
   float bearing = atan2(vy-ty,vx-tx);
 
   float a_slope = tan(course);
+  if (a_slope == 0.0) {
+    a_slope = 0.000000000001;
+  }
   float b_slope = -1.0/a_slope;
+  //Serial.print("as=");Serial.print(a_slope);Serial.print(" bs=");Serial.println(b_slope);
 
-  float target_y_int =  ty  - (b_slope*tx);   // b[1] - (b_slope*b[0])
-  float vehicle_y_int = vy -  (a_slope*vx);  // a[1] - (a_slope*a[0])
+  float target_y_int  = ty - (b_slope*tx);   // b[1] - (b_slope*b[0])
+  float vehicle_y_int = vy - (a_slope*vx);  // a[1] - (a_slope*a[0])
 
-  float x = (vehicle_y_int-target_y_int) / ((b_slope*vx) - (a_slope*vx));
+  float x = (vehicle_y_int-target_y_int) / (b_slope - a_slope);
   float y = (a_slope*x) + vehicle_y_int;
+
+  //Serial.print("x="); Serial.print(x,5); Serial.print(" y="); Serial.println(y,5);
 
   float distance                     = sqrt(((vx-tx)*(vx-tx)) + ((vy-ty)*(vy-ty))); 
   float distance_to_closest_approach = sqrt(((vx-x)*(vx-x))   + ((vy-y)*(vy-y)));
@@ -43,3 +58,23 @@ Fix build_fix(Point &vehicle, Point &target, float course, float speed) {
                .time_to_closest_approach = time_to_closest_approach};
 }
 
+void print_point(Point &p){
+  Serial.print("lat: ");
+  Serial.print(p.lat*180.0/3.14159,4);
+  Serial.print(" lon: ");
+  Serial.println(p.lon*180.0/3.14159,4);
+
+}
+
+void print_fix(Fix &fix) {
+  Serial.print("bearing: ");
+  Serial.print(fix.bearing,4);
+  Serial.print(" distance: ");
+  Serial.print(fix.distance,4);
+  Serial.print(" cad: ");
+  Serial.print(fix.closest_approach_distance,4);
+  Serial.print(" dtca: ");
+  Serial.print(fix.distance_to_closest_approach,4);
+  Serial.print(" ttca: ");
+  Serial.println(fix.time_to_closest_approach,4);
+}

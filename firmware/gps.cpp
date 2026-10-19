@@ -12,7 +12,7 @@ void GPSTask(void* parameter) {
 
   for (;;) {
     //Serial.println("Hello from the GPS task!");
-    Point point(45.0,-123.5+lat_speed);
+    Point point(deg_to_rad(45.01),deg_to_rad(-123.5+lat_speed));
 
     SchedulerMessage cur_position = { .type = POSITION_MSG, 
                                       .msg = { .position = { .pos = point, 

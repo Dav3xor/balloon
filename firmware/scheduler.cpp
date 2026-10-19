@@ -34,10 +34,11 @@ void sort_targets(void) {
       index--;
     }
   }
-  Serial.print("sort elapsed: ");
-  Serial.print(micros() - startTime);
-  Serial.print(", num_swaps: ");
-  Serial.println(num_swaps);
+
+  //Serial.print("sort elapsed: ");
+  //Serial.print(micros() - startTime);
+  //Serial.print(", num_swaps: ");
+  //Serial.println(num_swaps);
 }
 
 void get_distances(Point &newp) {
@@ -74,6 +75,13 @@ void change_position(Point &point){
   
   get_distances(point);
   sort_targets();
+
+  Point target = { .lat = targets[sorted_targets[0]].lat, .lon = targets[sorted_targets[0]].lon};
+  Fix fix = build_fix(point,target,3.14159,.001);
+  //print_point(point);
+  //print_point(target);
+  //print_point(fix.closest);
+  print_fix(fix);
   // for now, just take a picture...
   //CameraMessage take_picture = {TAKE_PICTURE_MSG};
   //xQueueSend(CameraQueue,
