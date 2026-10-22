@@ -202,7 +202,7 @@ esp_err_t camera_capture(){
     process_image(fb->width, fb->height, fb->format, fb->buf, fb->len);
   
     //return the frame buffer back to the driver for reuse
-    //esp_camera_fb_return(fb);
+    esp_camera_fb_return(fb);
     return ESP_OK;
 }
 
