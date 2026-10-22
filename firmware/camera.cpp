@@ -2,8 +2,6 @@
 #include "messages.h"
 #include "compression/lz.h"
 #include "esp_camera.h"
-#include "FS.h"
-#include "SD.h"
 
 
 
@@ -24,42 +22,17 @@
 #define	CAM_DVP_Y9 48
 
 // define what width/height we're using
-#define CAM_WIDTH       160
-#define CAM_HEIGHT      120
-#define CAM_FRAMESIZE     FRAMESIZE_QQVGA
+#define CAM_WIDTH       1600
+#define CAM_HEIGHT      1200
+//#define CAM_FRAMESIZE     FRAMESIZE_QQVGA
 //#define CAM_FRAMESIZE   FRAMESIZE_SXGA
 //#define CAM_FRAMESIZE   FRAMESIZE_QXGA
+#define CAM_FRAMESIZE     FRAMESIZE_UXGA
 #define CAM_OUTBUFSIZE  (CAM_WIDTH*CAM_HEIGHT)/4
 
 #define CAM_PIN_PWDN -1
-/*
-void writeFile(fs::FS &fs, const char *path, uint8_t *data, size_t len){
-  Serial.printf("Writing file: %s\r\n", path);
 
-  File file = fs.open(path, FILE_WRITE);
-  if(!file){
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-
-  size_t num_chunks = len/512;
-  for (int i=0; i<num_chunks; i++) {
-    size_t num_write = 512;
-    if (i*512 + 512 > len) {
-      num_write = len-(i*512);
-    }
-    int result=file.write(&data[i*512],num_write);
-    if (result < num_write) {
-        Serial.printf("Write failed! Expected %d bytes, wrote %d\n", num_write, result);
-        break;
-        // Check standard error codes
-    }
-    yield();
-  }
-  file.close();
-  Serial.println("- file written");
-}
-*/
+camera_fb_t *fb;
 
 static camera_config_t camera_config = {
     .pin_pwdn  = CAM_PIN_PWDN,
@@ -159,7 +132,7 @@ void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf
   Serial.println("capture");
   uint32_t zoom = 20;
 
-  // print the original buffer from the camera
+  //print the original buffer from the camera
   //for(int i=0; i < height/zoom; i++) {
   //    for(int j=0; j < width/zoom*2; j++){
   //        Serial.print(grays[buf[i*(width*zoom) + j*zoom/2]>>5]);
@@ -174,7 +147,7 @@ void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf
       }
       Serial.println("");
   }
-  //writeFile(LittleFS, "/image.bin", outbuf, CAM_OUTBUFSIZE);  
+
 
 }
 
@@ -197,6 +170,7 @@ void process_image(size_t width, size_t height, pixformat_t format, uint8_t *buf
 
 
 esp_err_t camera_init(){
+
     //power up the camera if PWDN pin is defined
     if(CAM_PIN_PWDN != -1){
         pinMode(CAM_PIN_PWDN, OUTPUT);
@@ -219,7 +193,7 @@ esp_err_t camera_capture(){
       camera_fb_t *fb = esp_camera_fb_get();
       esp_camera_fb_return(fb);
     }
-    camera_fb_t * fb = esp_camera_fb_get();
+    fb = esp_camera_fb_get();
     if (!fb) {
         ESP_LOGE(TAG, "Camera Capture Failed");
         return ESP_FAIL;
@@ -228,7 +202,7 @@ esp_err_t camera_capture(){
     process_image(fb->width, fb->height, fb->format, fb->buf, fb->len);
   
     //return the frame buffer back to the driver for reuse
-    esp_camera_fb_return(fb);
+    //esp_camera_fb_return(fb);
     return ESP_OK;
 }
 
@@ -270,7 +244,13 @@ void CameraTask(void * parameter) {
         case TAKE_PICTURE_MSG:
           if(num_pictures % 3 == 0){
             Serial.println("taking picture...");
-              camera_capture();
+            camera_capture();
+            SPIMessage file_written = {SPI_WRITE_IMG_MSG};
+            file_written.msg.write_img.fb  = outbuf;
+            file_written.msg.write_img.len = CAM_OUTBUFSIZE;
+            xQueueSend(SPIQueue,
+                       ( void * ) &file_written, 
+                       ( TickType_t ) 0 );
               //Serial.print("New Location: ");
               //Serial.print(cur_message.msg.position.latitude);
               //Serial.print(",");
@@ -279,11 +259,9 @@ void CameraTask(void * parameter) {
           }
           num_pictures += 1;
           break;
-        case CAMERA_DONE_MSG:
+        case FILE_WRITTEN_MSG:
           //Serial.println("Camera Finished!");
-          break;
-        case WSPR_DONE_MSG:
-          //Serial.println("WSPR Done Transmitting");
+          esp_camera_fb_return(fb);
           break;
         }
       }

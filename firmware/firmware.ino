@@ -37,7 +37,8 @@ void setup() {
 
   // Build queues
   SchedulerQueue = xQueueCreate(10, sizeof(SchedulerMessage));
-  CameraQueue   = xQueueCreate(10, sizeof(CameraMessage));
+  CameraQueue    = xQueueCreate(10, sizeof(CameraMessage));
+  SPIQueue       = xQueueCreate(10, sizeof(SPIMessage));
 
   // Start our tasks
   xTaskCreatePinnedToCore(
@@ -60,6 +61,10 @@ void setup() {
     0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
   );
 
+
+  pinMode      (3, OUTPUT);
+  digitalWrite (3, HIGH); // Deselect Lora
+/*
    xTaskCreatePinnedToCore(
     LoraTask,           // Name of the task function
     "LoraTask",  // Descriptive name for debugging
@@ -69,7 +74,17 @@ void setup() {
     &LoraTaskHandle,     // Task handle to track the task (NULL if not needed)
     0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
   );
+*/
 
+   xTaskCreatePinnedToCore(
+    SPITask,           // Name of the task function
+    "SPITask",  // Descriptive name for debugging
+    10000,             // Stack size in words (allocate enough memory)
+    NULL,              // Parameter to pass to the task (NULL if none)
+    1,                 // Task priority (higher numbers = higher priority)
+    &SPITaskHandle,     // Task handle to track the task (NULL if not needed)
+    0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
+  );
   
   xTaskCreatePinnedToCore(
     CameraTask,           // Name of the task function

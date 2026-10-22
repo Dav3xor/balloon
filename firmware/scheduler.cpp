@@ -65,6 +65,7 @@ void get_distances(Point &newp) {
   }
 }
 void change_position(Point &point){
+  static uint32_t counter = 0;
   // TODO: update target list, etc...
 
   //Serial.print("New Location: ");
@@ -77,16 +78,19 @@ void change_position(Point &point){
   sort_targets();
 
   Point target = { .lat = targets[sorted_targets[0]].lat, .lon = targets[sorted_targets[0]].lon};
-  Fix fix = build_fix(point,target,3.14159,.001);
+  Fix fix = build_fix(point,target,3.14159,.005);
   //print_point(point);
   //print_point(target);
   //print_point(fix.closest);
   print_fix(fix);
   // for now, just take a picture...
-  //CameraMessage take_picture = {TAKE_PICTURE_MSG};
-  //xQueueSend(CameraQueue,
-  //            ( void * ) &take_picture, 
-  //            ( TickType_t ) 0 );
+  CameraMessage take_picture = {TAKE_PICTURE_MSG};
+  if (!counter) {
+    xQueueSend(CameraQueue,
+                ( void * ) &take_picture, 
+                ( TickType_t ) 0 );
+    counter += 1;
+  }
 
 }
 
@@ -115,11 +119,8 @@ void SchedulerTask(void * parameter) {
               change_position(newp);
               break;
             }
-            case CAMERA_DONE_MSG:
+            case CAMERA_READY_MSG:
               //Serial.println("Camera Finished!");
-              break;
-            case WSPR_DONE_MSG:
-              //Serial.println("WSPR Done Transmitting");
               break;
           }
 
