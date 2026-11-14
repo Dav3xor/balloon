@@ -4,9 +4,13 @@
 #include "tasks.h"
 #include "messages.h"
 #include "sekrit.h"
+
 //#include <FS.h>
 //#include <SD.h>
 #include <SPI.h>
+
+
+
 void writeFile(fs::FS &fs, const char * path, const char * message){
     Serial.printf("Writing file: %s\n", path);
 
@@ -79,9 +83,9 @@ void setup() {
    xTaskCreatePinnedToCore(
     SPITask,           // Name of the task function
     "SPITask",  // Descriptive name for debugging
-    10000,             // Stack size in words (allocate enough memory)
+    20000,             // Stack size in words (allocate enough memory)
     NULL,              // Parameter to pass to the task (NULL if none)
-    1,                 // Task priority (higher numbers = higher priority)
+    0,                 // Task priority (higher numbers = higher priority)
     &SPITaskHandle,     // Task handle to track the task (NULL if not needed)
     0                  // Core ID: Run on Core 0 (Arduino loop runs on Core 1 by default)
   );
@@ -89,7 +93,7 @@ void setup() {
   xTaskCreatePinnedToCore(
     CameraTask,           // Name of the task function
     "CameraTask",  // Descriptive name for debugging
-    10000,             // Stack size in words (allocate enough memory)
+    50000,             // Stack size in words (allocate enough memory)
     NULL,              // Parameter to pass to the task (NULL if none)
     1,                 // Task priority (higher numbers = higher priority)
     &SchedulerTaskHandle,     // Task handle to track the task (NULL if not needed)

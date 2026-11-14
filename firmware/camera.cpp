@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include "messages.h"
-#include "compression/lz.h"
 #include "esp_camera.h"
-
+#include "bitmap.h"
 
 
 #define	CAM_XMCLK	10
@@ -21,14 +20,10 @@
 #define	CAM_DVP_HREF 47	
 #define	CAM_DVP_Y9 48
 
+//QXGA (3MP): 2048 × 1536 
 // define what width/height we're using
-#define CAM_WIDTH       1600
-#define CAM_HEIGHT      1200
-//#define CAM_FRAMESIZE     FRAMESIZE_QQVGA
-//#define CAM_FRAMESIZE   FRAMESIZE_SXGA
-//#define CAM_FRAMESIZE   FRAMESIZE_QXGA
-#define CAM_FRAMESIZE     FRAMESIZE_UXGA
-#define CAM_OUTBUFSIZE  (CAM_WIDTH*CAM_HEIGHT)/4
+#define CAM_FRAMESIZE   FRAMESIZE_QXGA
+
 
 #define CAM_PIN_PWDN -1
 
@@ -53,6 +48,7 @@ static camera_config_t camera_config = {
     .pin_href = CAM_DVP_HREF,
     .pin_pclk = CAM_DVP_PCLK,
 
+    //.xclk_freq_hz = 20000000,
     .xclk_freq_hz = 20000000,
     .ledc_timer = LEDC_TIMER_0,
     .ledc_channel = LEDC_CHANNEL_0,
@@ -66,7 +62,9 @@ static camera_config_t camera_config = {
     .grab_mode = CAMERA_GRAB_WHEN_EMPTY//CAMERA_GRAB_LATEST. Sets when buffers should be filled
 };
 
-uint8_t *outbuf = NULL;
+uint8_t *outbuf        = NULL;
+uint8_t *compressedbuf = NULL;
+
 
 const char *grays = " .~*&%@#";
 //const char *grays2 = " ~+#";
@@ -187,7 +185,9 @@ esp_err_t camera_init(){
     return ESP_OK;
 }
 
-esp_err_t camera_capture(){
+size_t camera_capture(){
+    ledc_timer_resume(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
+    unsigned long startTime = micros();
     //acquire a frame
     for(int i=0;i<5;i++){
       camera_fb_t *fb = esp_camera_fb_get();
@@ -198,16 +198,76 @@ esp_err_t camera_capture(){
         ESP_LOGE(TAG, "Camera Capture Failed");
         return ESP_FAIL;
     }
+    
+
 
     process_image(fb->width, fb->height, fb->format, fb->buf, fb->len);
   
     //return the frame buffer back to the driver for reuse
     esp_camera_fb_return(fb);
-    return ESP_OK;
+
+    // pause the clock for the camera and wait a little...
+    ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
+    delay(1000);
+
+    Serial.print("capture elapsed: ");
+    Serial.println(micros()-startTime);
+    
+    startTime = micros();
+
+    // Allocate the state statically or from the FreeRTOS heap
+    //void *lz4State = pvPortMalloc(sizeof(LZ4_stream_t)); 
+
+    size_t compressed_len = 0;
+    size_t uncompressed_len = 0;
+    static int total=CAM_OUTBUFSIZE;
+    
+    //compressed_len = ECL_NanoLZ_Compress_auto_ex2(ECL_NANOLZ_SCHEME1, 
+    //                                              outbuf, 
+    //                                              1000, 
+    //                                              compressedbuf, 
+    //                                              CAM_OUTBUFSIZE, 
+    //                                              ECL_NANO_LZ_GET_BOUND(1000), 
+    //                                              nullptr, 
+    //                                              nullptr, 
+    //                                              20);
+
+    //  compressed_len = LZ4_compress_destSize((const char *)outbuf, 
+    //                                         (char *)compressedbuf,
+    //                                         &total, 
+    //                                         180);
+    
+
+
+    //static size_t compressed_len = compress_img(outbuf,
+    //                                            CAM_OUTBUFSIZE, 
+    //                                            10, 
+    //                                            compressedbuf, 
+    //                                            CAM_OUTBUFSIZE, 
+    //                                            NULL);
+    //static size_t                compress(const uint8_t* input, size_t input_len, unsigned window_bits, uint8_t* output, size_t max_output, uint32_t* const out_time_us);
+    //size_t compressed_len = LZ_Compress((unsigned char *)outbuf, (unsigned char *)compressedbuf,50000);
+    Serial.print("uncompressed: ");
+    Serial.println(total);
+
+    Serial.print("compressed: ");
+    Serial.println(compressed_len);
+    
+    Serial.print("compression elapsed: ");
+    Serial.println(micros()-startTime);
+  
+
+
+    //startTime = micros();
+    //if(compressed_len){
+    //  uncompressed_len = LZ4_uncompress ((const char *)compressedbuf, (char *)outbuf, CAM_OUTBUFSIZE);
+    //}
+    //Serial.print("decompression elapsed: ");
+    //Serial.println(micros()-startTime);
+    return compressed_len;
 }
 
 
-// 1. Define the task function
 void CameraTask(void * parameter) {
   Serial.print("Camera Task is running on Core: ");
   Serial.println(xPortGetCoreID()); // Prints which core it is running on
@@ -226,13 +286,18 @@ void CameraTask(void * parameter) {
  
   //Serial.println("allocating buffer");
   outbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
-  
+  //compressedbuf = (uint8_t *)malloc(10000);
+  compressedbuf = (uint8_t *)malloc(CAM_OUTBUFSIZE);
+
   if (outbuf == NULL ) {
-    Serial.println("buffer allocation failed");
+    Serial.println("out buffer allocation failed");
   }
-  
+  if (compressedbuf == NULL ) {
+    Serial.println("compressed buffer allocation failed");
+  }
 
-
+  // turn off the clock to the camera...
+  ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0);
   uint32_t num_pictures = 0;
 
   for(;;) {
@@ -244,18 +309,15 @@ void CameraTask(void * parameter) {
         case TAKE_PICTURE_MSG:
           if(num_pictures % 3 == 0){
             Serial.println("taking picture...");
-            camera_capture();
+            size_t compressed_len = camera_capture();
             SPIMessage file_written = {SPI_WRITE_IMG_MSG};
-            file_written.msg.write_img.fb  = outbuf;
-            file_written.msg.write_img.len = CAM_OUTBUFSIZE;
+            file_written.msg.write_img.compressed  = compressedbuf;
+            file_written.msg.write_img.uncompressed = outbuf;
+            file_written.msg.write_img.len = compressed_len;
+            file_written.msg.write_img.uncomp_len = CAM_OUTBUFSIZE;
             xQueueSend(SPIQueue,
                        ( void * ) &file_written, 
                        ( TickType_t ) 0 );
-              //Serial.print("New Location: ");
-              //Serial.print(cur_message.msg.position.latitude);
-              //Serial.print(",");
-              //Serial.print(cur_message.msg.position.longitude);
-              //Serial.println("");
           }
           num_pictures += 1;
           break;

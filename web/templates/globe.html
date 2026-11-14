@@ -34,31 +34,15 @@
       colorScale.domain([0, maxVal]);
 
       const world = new Globe(document.getElementById('globeViz'))
+        .globeImageUrl('/static/earth-blue-marble.jpg')
+        .bumpImageUrl('/static/earth-topology.png')
+        .backgroundImageUrl('/static/night-sky.png')
+
         .pointsData(targets)
         .pointAltitude('a')
         .pointRadius('r')
         .pointColor('c')
         
-        //.globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
-        //.backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
-        .lineHoverPrecision(0)
-        .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
-        .polygonAltitude(0.01)
-        //.polygonCapColor(feat => colorScale(getVal(feat)))
-        .polygonCapColor(feat => 'rgba(100,70,70,1.0)')
-        .polygonSideColor(() => 'rgba(100, 70, 70, 0.5)')
-        .polygonStrokeColor(() => '#111')
-        .polygonLabel(({ properties: d }) => `
-          <b>${d.ADMIN} (${d.ISO_A2}):</b> <br />
-          GDP: <i>${d.GDP_MD_EST}</i> M$<br/>
-          Population: <i>${d.POP_EST}</i>
-        `)
-        .onPolygonHover(hoverD => world
-          .polygonAltitude(d => d === hoverD ? 0.03 : 0.01)
-          .polygonCapColor(d => d === hoverD ? 'steelblue' : 'rgba(100,70,70,1.0)')
-          //.polygonCapColor(d => d === hoverD ? 'steelblue' : colorScale(getVal(d)))
-        )
-        .polygonsTransitionDuration(300);
 
     });
   </script>

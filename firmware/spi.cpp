@@ -11,7 +11,7 @@ uint32_t picture_taken=0;
 
 
 
-#define CHUNK_SIZE 512
+#define CHUNK_SIZE 4096
 void writeFile(fs::FS &fs, const char *path, uint8_t *data, size_t len){
   Serial.printf("Writing file: %s\r\n", path);
 
@@ -68,8 +68,12 @@ void SPITask(void* parameter) {
         case SPI_WRITE_IMG_MSG:
           if(picture_taken == 0){
             Serial.println("saving picture...");
-            writeFile(LittleFS, "/image.bin", cur_message.msg.write_img.fb, cur_message.msg.write_img.len);
-            Serial.println((uint32_t)cur_message.msg.write_img.fb);
+            unsigned long startTime = micros();
+            writeFile(LittleFS, "/image.lz4", cur_message.msg.write_img.compressed, cur_message.msg.write_img.len);
+            writeFile(LittleFS, "/image.bin", cur_message.msg.write_img.uncompressed, cur_message.msg.write_img.uncomp_len);
+            Serial.print("saving image elapsed: ");
+            Serial.println(micros()-startTime);
+            Serial.print("size: ");
             Serial.println(cur_message.msg.write_img.len);
             CameraMessage file_written = {FILE_WRITTEN_MSG};
             xQueueSend(CameraQueue,

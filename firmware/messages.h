@@ -39,8 +39,10 @@ typedef struct SPIMessage {
   uint32_t type;
   union {
     struct {
-      uint8_t *fb;
+      uint8_t *compressed;
+      uint8_t *uncompressed;
       size_t len;
+      size_t uncomp_len;
       uint8_t *info;
       uint8_t *info_len;
     } write_img;

@@ -86,6 +86,7 @@ void change_position(Point &point){
   // for now, just take a picture...
   CameraMessage take_picture = {TAKE_PICTURE_MSG};
   if (!counter) {
+    Serial.println("Taking Picture!");
     xQueueSend(CameraQueue,
                 ( void * ) &take_picture, 
                 ( TickType_t ) 0 );

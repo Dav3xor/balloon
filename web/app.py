@@ -42,7 +42,7 @@ def targets():
                  'lng':  target[1],
                  'apr':  target[3],
                  'r':    .08,
-                 'a':    0.01, 
+                 'a':    0.001, 
                  'c':    c,
                  'name': target[2]}
         targets.append(point)
