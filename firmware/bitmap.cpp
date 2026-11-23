@@ -1,7 +1,7 @@
 #include "bitmap.h"
 #include <cstdio>
 
-
+#define MAX_REPEAT 254
 // total bytes: 786432
 // bytes per line: 512
 // lines high = 1536
@@ -88,19 +88,45 @@ void set_two_bytes(uint8_t *bitmap, uint32_t pos, uint16_t val) {
   }
   for (int i=7; i>=4; i-=1) {
     printf("%d\n",i);
-    b1  = (b1  << 1) + ((val >> i+8)   & 1);
+    b1  = (b1  << 1) + ((val >> i+8) & 1);
     b1  = (b1  << 1) + ((val >> i)   & 1);
   }
-  set_spiral_byte(bitmap,pos,b1);
+  set_spiral_byte(bitmap,pos,  b1);
   set_spiral_byte(bitmap,pos+1,b2);
   printf("val: %016b b1: %08b b2: %08b\n", val, b1, b2);
 }
 
 
+//uint32_t duplicate_count(uint8_t *input, size_t inlen) {
+//  for (uint32_t i = 1; i < inlen; i++) {
+//    if((input[i] != input[0]) || (i > 254) {
+//      return i-1;
+//    }
+//}
 
-
-
-
+uint32_t compress_RLE_huffman_simple(uint8_t *input,  uint32_t startpos,
+                                     uint8_t *output, size_t   outlen) {
+  uint32_t curpos  = startpos;
+  uint32_t consumed = 0;
+  uint8_t i        = 1;
+  
+  uint8_t cur_byte  = get_spiral_byte(input, curpos);
+  uint8_t next_byte = 0;
+  while (curpos < outlen) {
+    for (i = 1; i < MAX_REPEAT; i++) {
+      next_byte = get_spiral_byte(input, curpos+i);
+      if (next_byte != cur_byte) {
+        break;
+      }
+    }
+    output[curpos]     = i-1; 
+    output[curpos+1]   = cur_byte;
+    consumed          += (i+1);
+    cur_byte           = next_byte;
+    curpos            += 2;
+  }
+  return consumed;
+}
 
 void print_extents(void){
   printf("minx = %d maxx = %d miny = %d maxy = %d",minx,maxx,miny,maxy);
